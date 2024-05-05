@@ -5,7 +5,15 @@ CommunicationPacket::CommunicationPacket(PacketType type, std::uint8_t* data, st
     messageData.assign(data, data + size);
 }
 
+CommunicationPacket::CommunicationPacket(PacketType type, std::vector<std::uint8_t> data) {
+    packetType = type;
+    messageData = data;
+}
+
 CommunicationPacket::~CommunicationPacket() {}
+
+CommunicationPacket::PacketType CommunicationPacket::getPacketType() const { return packetType; }
+std::vector<std::uint8_t> CommunicationPacket::getPacketData() const { return messageData; }
 
 std::vector<std::uint8_t> CommunicationPacket::serialize() const {
     // Packet structure is as follows

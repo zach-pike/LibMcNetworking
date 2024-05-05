@@ -15,10 +15,10 @@ private:
     // Socket
     int socketFileDescriptor;
 
-    std::queue<CommunicationPacket> inQueue;
+    std::deque<CommunicationPacket> inQueue;
     std::mutex inQueueMutex;
 
-    std::queue<CommunicationPacket> outQueue;
+    std::deque<CommunicationPacket> outQueue;
     std::mutex outQueueMutex;
 
     void _threadedWorker();
@@ -27,4 +27,7 @@ public:
     ~NetworkClient();
 
     void startNetworking(std::string ipAddress, std::uint16_t port);
+    void stopNetworking();
+
+    void sendMessage(CommunicationPacket packet);
 };
