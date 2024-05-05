@@ -8,7 +8,6 @@
 
 #include <functional>
 #include <cstdint>
-#include <cctype>
 
 #ifndef RECIEVE_BUFF_SIZE
 #define RECIEVE_BUFF_SIZE 2048
@@ -108,8 +107,11 @@ void NetworkClient::_threadedWorker() {
         write(socketFileDescriptor, packetData.data(), packetData.size());
     }
 
+    // Deallocate the inBuffer
     delete[] inBuffer;
 
+    // Close socket
+    close(socketFileDescriptor);
 }
 
 void NetworkClient::startNetworking(std::string ipAddress, std::uint16_t port) {
