@@ -23,5 +23,11 @@ public:
     NetworkServer();
     ~NetworkServer();
 
+    std::vector<NetworkConnection>& clients();
+
+    std::size_t connectedCount() const;
+
     void startNetworking(std::string bindIP, std::uint16_t bindPort);
+
+    void stopNetworking();
 };

@@ -9,9 +9,7 @@
 #include <functional>
 #include <cstdint>
 
-#ifndef RECIEVE_BUFF_SIZE
-#define RECIEVE_BUFF_SIZE 2048
-#endif
+#include "definitions.hpp"
 
 #include <fcntl.h>
 
@@ -88,23 +86,25 @@ void NetworkClient::_threadedWorker() {
         }
 
         // Consume message from queue and send it
-        outQueueMutex.lock();
-        CommunicationPacket packetToSend = outQueue.front();
-        outQueue.pop_front();
-        outQueueMutex.unlock();
+        if (outQueue.size() > 0) {
+            outQueueMutex.lock();
+            CommunicationPacket packetToSend = outQueue.front();
+            outQueue.pop_front();
+            outQueueMutex.unlock();
 
-        std::uint16_t packetType = (std::uint16_t)packetToSend.getPacketType();
-        std::vector<std::uint8_t> packetData = packetToSend.getPacketData();
-        std::uint32_t packetDataLength = packetData.size();
+            std::uint16_t packetType = (std::uint16_t)packetToSend.getPacketType();
+            std::vector<std::uint8_t> packetData = packetToSend.getPacketData();
+            std::uint32_t packetDataLength = packetData.size();
 
-        // Send messageType
-        write(socketFileDescriptor, &packetType, sizeof(packetType));
+            // Send messageType
+            write(socketFileDescriptor, &packetType, sizeof(packetType));
 
-        // Send message size
-        write(socketFileDescriptor, &packetDataLength, sizeof(packetDataLength));
+            // Send message size
+            write(socketFileDescriptor, &packetDataLength, sizeof(packetDataLength));
 
-        // Write data
-        write(socketFileDescriptor, packetData.data(), packetData.size());
+            // Write data
+            write(socketFileDescriptor, packetData.data(), packetData.size());
+        }
     }
 
     // Deallocate the inBuffer
