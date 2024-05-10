@@ -44,36 +44,39 @@ void NetworkConnection::_networkWorker() {
         // If we have read some bytes do something with them
         if (bytesJustRead > 0) {
             bufferByteCount += bytesJustRead;
+        } else if(bytesJustRead == -1) {
+            workerRunning = false;
+            break;
+        }
 
-            // Start reading content in
-            if (messageHeaderParsed) {
-                std::size_t bytesToReadIn = bufferByteCount - messageContentStartOffset;
+        // Start reading content in
+        if (messageHeaderParsed) {
+            std::size_t bytesToReadIn = bufferByteCount - messageContentStartOffset;
 
-                // Copy the portion in to the vector
-                messageContent.insert(messageContent.end(), 
-                    inBuffer + messageContentStartOffset,
-                    inBuffer + messageContentStartOffset + bytesToReadIn
-                );
+            // Copy the portion in to the vector
+            messageContent.insert(messageContent.end(), 
+                inBuffer + messageContentStartOffset,
+                inBuffer + messageContentStartOffset + bytesToReadIn
+            );
 
-                // If we have read all data nessesary then we will stop
-                if (messageContent.size() >= messageHeader.packetLength) {
-                    inQueueMutex.lock();
+            // If we have read all data nessesary then we will stop
+            if (messageContent.size() >= messageHeader.packetLength) {
+                inQueueMutex.lock();
 
-                    printf("packet recvd\n");
-                    inQueue.push_back(CommunicationPacket(messageHeader.packetType, messageContent));
-                    inQueueMutex.unlock();
+                printf("packet recvd\n");
+                inQueue.push_back(CommunicationPacket(messageHeader.packetType, messageContent));
+                inQueueMutex.unlock();
 
-                    messageHeaderParsed = false;
+                messageHeaderParsed = false;
 
-                    messageContent.clear();
-                }
-
-                // Set the buffer write pointer back to the beginning
-                bufferByteCount = 0;
-                
-                // Start reading from beginning on next read pass
-                messageContentStartOffset = 0;
+                messageContent.clear();
             }
+
+            // Set the buffer write pointer back to the beginning
+            bufferByteCount = 0;
+                
+            // Start reading from beginning on next read pass
+            messageContentStartOffset = 0;
         }
 
         // See if we have enough bytes to parse the header
@@ -89,7 +92,7 @@ void NetworkConnection::_networkWorker() {
         }
 
         // Consume message from queue and send it
-        if (hasNewPackets()) {
+        if (outQueue.size() > 1) {
             outQueueMutex.lock();
             CommunicationPacket packetToSend = outQueue.front();
             outQueue.pop_front();
@@ -100,13 +103,22 @@ void NetworkConnection::_networkWorker() {
             std::uint32_t packetDataLength = packetData.size();
 
             // Send messageType
-            write(socketDescriptor, &packetType, sizeof(packetType));
+            if(write(socketDescriptor, &packetType, sizeof(packetType)) == -1) {
+                workerRunning = false;
+                break;
+            }
 
             // Send message size
-            write(socketDescriptor, &packetDataLength, sizeof(packetDataLength));
+            if(write(socketDescriptor, &packetDataLength, sizeof(packetDataLength)) == -1) {
+                workerRunning = false;
+                break;
+            }
 
             // Write data
-            write(socketDescriptor, packetData.data(), packetData.size());
+            if(write(socketDescriptor, packetData.data(), packetData.size()) == -1) {
+                workerRunning = false;
+                break;
+            }
         }
     }
 
@@ -114,6 +126,8 @@ void NetworkConnection::_networkWorker() {
     delete[] inBuffer;
 
     close(socketDescriptor);
+
+    socketDescriptor = -1;
 }
 
 bool NetworkConnection::hasNewPackets() const {
@@ -130,6 +144,10 @@ CommunicationPacket NetworkConnection::consumePacket() {
 
     return p;
 
+}
+
+int NetworkConnection::getSocketDescriptor() const {
+    return socketDescriptor;
 }
 
 void NetworkConnection::startWorker() {

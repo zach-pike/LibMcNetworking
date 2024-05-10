@@ -45,32 +45,36 @@ void NetworkClient::_threadedWorker() {
         // If we have read some bytes do something with them
         if (bytesJustRead > 0) {
             bufferByteCount += bytesJustRead;
+        }
 
-            // Start reading content in
-            if (messageHeaderParsed) {
-                std::size_t bytesToReadIn = bufferByteCount - messageContentStartOffset;
+        // Start reading content in
+        if (messageHeaderParsed) {
+            std::size_t bytesToReadIn = bufferByteCount - messageContentStartOffset;
 
-                // Copy the portion in to the vector
-                messageContent.insert(messageContent.end(), 
-                    inBuffer + messageContentStartOffset,
-                    inBuffer + messageContentStartOffset + bytesToReadIn
-                );
+            // Copy the portion in to the vector
+            messageContent.insert(messageContent.end(), 
+                inBuffer + messageContentStartOffset,
+                inBuffer + messageContentStartOffset + bytesToReadIn
+            );
 
-                // If we have read all data nessesary then we will stop
-                if (messageContent.size() >= messageHeader.packetLength) {
-                    inQueueMutex.lock();
-                    inQueue.push_back(CommunicationPacket(messageHeader.packetType, messageContent));
-                    inQueueMutex.unlock();
+            // If we have read all data nessesary then we will stop
+            if (messageContent.size() >= messageHeader.packetLength) {
+                inQueueMutex.lock();
 
-                    messageContent.clear();
-                }
+                printf("packet recvd\n");
+                inQueue.push_back(CommunicationPacket(messageHeader.packetType, messageContent));
+                inQueueMutex.unlock();
 
-                // Set the buffer write pointer back to the beginning
-                bufferByteCount = 0;
-            
-                // Start reading from beginning on next read pass
-                messageContentStartOffset = 0;
+                messageHeaderParsed = false;
+
+                messageContent.clear();
             }
+
+            // Set the buffer write pointer back to the beginning
+            bufferByteCount = 0;
+                
+            // Start reading from beginning on next read pass
+            messageContentStartOffset = 0;
         }
 
         // See if we have enough bytes to parse the header
@@ -86,7 +90,7 @@ void NetworkClient::_threadedWorker() {
         }
 
         // Consume message from queue and send it
-        if (outQueue.size() > 0) {
+        if (outQueue.size() > 1) {
             outQueueMutex.lock();
             CommunicationPacket packetToSend = outQueue.front();
             outQueue.pop_front();

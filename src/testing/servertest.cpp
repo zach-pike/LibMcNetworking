@@ -11,10 +11,9 @@ int main() {
     while (ns.connectedCount() < 1);
 
     printf("Waiting for packet\n");
-    while (ns.clients()[0].hasNewPackets() != true);
+    while (ns.clients()[0]->hasNewPackets() != true);
 
-    auto newPacket = ns.clients()[0].consumePacket();
-
+    auto newPacket = ns.clients()[0]->consumePacket();
     auto data = newPacket.getPacketData();
 
     std::string dataStr(data.begin(), data.end());

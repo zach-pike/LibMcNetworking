@@ -38,19 +38,25 @@ void NetworkServer::_listenerThread() {
 
         int clientSocket;
         if ((clientSocket = accept(serverFileDescriptor, &newConnection, &sockLen)) > 0) {
-            // Create new connection
-            NetworkConnection connection(clientSocket, newConnection);
-            connections.push_back(std::move(connection));
-            connections.back().startWorker();
-
-            // connections.emplace(connections.end(), clientSocket, newConnection);
+            connections.push_back(std::make_unique<NetworkConnection>(clientSocket, newConnection));
+            connections.back()->startWorker();
         }
+
+        // Clear old connections
+        for(int i=0; i<connections.size(); i++){
+            // Destroy connection on dead socket descriptor
+            if (connections[i]->getSocketDescriptor() == -1) {
+                connections.erase(connections.begin() + i);
+                break; // make sure we don't have a livid moment
+            }
+        }
+
     }
 
     close(serverFileDescriptor);
 }
 
-std::vector<NetworkConnection>& NetworkServer::clients() {
+std::vector<std::unique_ptr<NetworkConnection>>& NetworkServer::clients() {
     return connections;
 }
 

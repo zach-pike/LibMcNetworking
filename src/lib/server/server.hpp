@@ -15,7 +15,7 @@ private:
     bool workerRunning = true;
     int serverFileDescriptor;
 
-    std::vector<NetworkConnection> connections;
+    std::vector<std::unique_ptr<NetworkConnection>> connections;
     std::mutex connectionsMutex;
 
     void _listenerThread();
@@ -23,7 +23,7 @@ public:
     NetworkServer();
     ~NetworkServer();
 
-    std::vector<NetworkConnection>& clients();
+    std::vector<std::unique_ptr<NetworkConnection>>& clients();
 
     std::size_t connectedCount() const;
 

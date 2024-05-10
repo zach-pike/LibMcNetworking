@@ -32,5 +32,7 @@ public:
     bool hasNewPackets() const;
     CommunicationPacket consumePacket();
 
+    int getSocketDescriptor() const;
+
     void startWorker();
 };
